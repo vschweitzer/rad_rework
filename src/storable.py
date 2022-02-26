@@ -8,7 +8,7 @@ class Storable:
         """
         dict_representation: dict = {}
         return dict_representation
-    
+
     def to_file(self, file_path: str):
         """
         Save class instance to file
