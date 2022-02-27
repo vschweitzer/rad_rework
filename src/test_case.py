@@ -1,9 +1,9 @@
-from asyncore import read
-from hmac import digest
-from typing import Any, Optional, Dict, Callable
-import storable
+from typing import Any, Callable
 import json
 import hashlib
+
+
+import storable
 
 
 class TestCaseBase(storable.Storable):
@@ -96,11 +96,11 @@ class TestCase(TestCaseBase):
 
 
 if __name__ == "__main__":
-    scan_path: str = "../Dataset_V2/MR100.nii.gz"
-    save_path: str = "./100_save.txt"
-    tc: TestCase = TestCase.from_scan_path(scan_path=scan_path, category=0)
-    tc.to_file(save_path)
-    tc2: TestCase = TestCase.from_file(save_path)
+    test_scan_path: str = "../Dataset_V2/MR100.nii.gz"
+    test_save_path: str = "./100_save.txt"
+    tc: TestCase = TestCase.from_scan_path(scan_path=test_scan_path, category=0)
+    tc.to_file(test_save_path)
+    tc2: TestCase = TestCase.from_file(test_save_path)
 
     print(tc)
     print(tc2)
