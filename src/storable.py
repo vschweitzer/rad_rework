@@ -1,7 +1,4 @@
 class Storable:
-    def __init__(self) -> None:
-        pass
-
     def get_dict_representation(self):
         """
         Get dictionary containing information to re-create class instance
@@ -13,11 +10,9 @@ class Storable:
         """
         Save class instance to file
         """
-        pass
 
     @classmethod
     def from_file(cls, file_path: str):
         """
         Load class instance from file
         """
-        pass
