@@ -5,7 +5,7 @@ Handles the representation of patients/test cases
 from typing import Any, Callable
 import json
 import hashlib
-
+import nibabel
 
 import storable
 
@@ -15,10 +15,15 @@ class TestCaseBase(storable.Storable):
     Represents a scan/annotation pair with health information.
     """
 
+    # stored
     scan_path: str
     anno_path: str
     category: int
     id: str
+
+    # not stored
+    anno_object: object
+    scan_object: object
 
     def __init__(self, scan_path: str, anno_path: str, category: int) -> None:
         super().__init__()
@@ -26,6 +31,8 @@ class TestCaseBase(storable.Storable):
         self.anno_path = anno_path
         self.category = category
         self.id = self.get_id()
+        self.scan_object = nibabel.load(self.scan_path)
+        self.anno_object = nibabel.load(self.anno_path)
 
     def get_id(
         self, hash_function: Callable = hashlib.sha3_256, buffer_size: int = 4096
@@ -90,6 +97,9 @@ class TestCaseBase(storable.Storable):
             no_ending = scan_path
         anno_path: str = no_ending + anno_suffix + file_ending
         return cls(scan_path, anno_path, category)
+
+    def get_index_of_largest_slice(self):
+        pass
 
 
 class TestCase(TestCaseBase):
