@@ -1,3 +1,7 @@
+""" 
+Handles the representation of patients/test cases
+"""
+
 from typing import Any, Callable
 import json
 import hashlib
@@ -7,6 +11,10 @@ import storable
 
 
 class TestCaseBase(storable.Storable):
+    """
+    Represents a scan/annotation pair with health information.
+    """
+
     scan_path: str
     anno_path: str
     category: int
@@ -85,6 +93,11 @@ class TestCaseBase(storable.Storable):
 
 
 class TestCase(TestCaseBase):
+    """
+    Represents a scan/annotation pair with health information. Offers cached
+    functions.
+    """
+
     def __init__(self, scan_path: str, anno_path: str, category: int) -> None:
         super().__init__(scan_path, anno_path, category)
         self.cached: dict = {}

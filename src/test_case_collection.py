@@ -15,7 +15,8 @@ import test_case
 
 class TestCaseCollection(storable.Storable):
     """
-    A collection of test_case.TestCase instances offering loading and selection methods.
+    A collection of test_case.TestCase instances offering loading and selection
+    methods.
     """
 
     test_cases: List[test_case.TestCase]

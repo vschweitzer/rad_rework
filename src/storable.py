@@ -1,3 +1,8 @@
+"""
+Base class for storing/caching class instances.
+"""
+
+
 class Storable:
     def get_dict_representation(self):
         """
