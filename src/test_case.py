@@ -11,6 +11,16 @@ import numpy as np
 import storable
 
 
+class ScanFile:
+    def __init__(self, path: str) -> None:
+        pass
+
+
+class AnnoFile:
+    def __init__(self, path: str) -> None:
+        pass
+
+
 class TestCaseBase(storable.Storable):
     """
     Represents a scan/annotation pair with health information.
@@ -23,8 +33,8 @@ class TestCaseBase(storable.Storable):
     id: str
 
     # not stored
-    anno_object: Any
-    scan_object: Any
+    anno_object: nibabel.Nifti1Image
+    scan_object: nibabel.Nifti1Image
 
     def __init__(self, scan_path: str, anno_path: str, category: int) -> None:
         super().__init__()
@@ -111,7 +121,23 @@ class TestCaseBase(storable.Storable):
         anno_path: str = no_ending + anno_suffix + file_ending
         return cls(scan_path, anno_path, category)
 
-    def get_index_of_largest_slice(self):
+
+class TestCase(TestCaseBase):
+    """
+    Represents a scan/annotation pair with health information. Offers cached
+    functions.
+    """
+
+    def __init__(self, scan_path: str, anno_path: str, category: int) -> None:
+        super().__init__(scan_path, anno_path, category)
+        self.cached: dict = {}
+
+    def get_dict_representation(self):
+        dict_representation: dict = super().get_dict_representation()
+        dict_representation["cached"] = self.cached
+        return dict_representation
+
+    def get_largest_slice_index(self):
         """
         Returns the largest slice of a scans' annotation.
         A "slice" has n-1 dimensions, where n is the number of dimensions of
@@ -145,21 +171,12 @@ class TestCaseBase(storable.Storable):
                     maximum_slice_area_index = slice_index
         return maximum_slice_area_index
 
+    def largest_slice_anno(self):
+        # TODO: Split scan and anno into their own classes, use second anno
+        # object to cache this
 
-class TestCase(TestCaseBase):
-    """
-    Represents a scan/annotation pair with health information. Offers cached
-    functions.
-    """
-
-    def __init__(self, scan_path: str, anno_path: str, category: int) -> None:
-        super().__init__(scan_path, anno_path, category)
-        self.cached: dict = {}
-
-    def get_dict_representation(self):
-        dict_representation: dict = super().get_dict_representation()
-        dict_representation["cached"] = self.cached
-        return dict_representation
+        slice_anno_data: np.array = np.zeros(self.anno_object.header.get_data_shape())
+        largest_slice_index: list = self.get_largest_slice_index()
 
 
 if __name__ == "__main__":
@@ -169,5 +186,5 @@ if __name__ == "__main__":
     tc.to_file(test_save_path)
     tc2: TestCase = TestCase.from_file(test_save_path)
 
-    print(tc.get_index_of_largest_slice())
-    print(tc2.get_index_of_largest_slice())
+    print(tc.get_largest_slice_index())
+    print(tc2.get_largest_slice_index())
