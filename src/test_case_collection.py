@@ -6,7 +6,7 @@ Defines TestCaseCollection, which offers loading and selection methods.
 import json
 import os
 import csv
-from typing import List
+from typing import List, Optional
 
 
 import storable
@@ -36,10 +36,14 @@ class TestCaseCollection(storable.Storable):
         return json.dumps(self.get_dict_representation())
 
     @classmethod
-    def from_csv(cls, csv_path: str, file_ending: str = ".nii.gz"):
+    def from_csv(
+        cls, csv_path: str, file_ending: str = ".nii.gz", skip_invalid: bool = True
+    ):
         """
         Load TestCaseCollection from csv file.
         Item separators are commas (,), line separators are newlines (\\n).
+
+        Expected columns are scan file name,pcr[,nar]
         """
         test_cases: List[test_case.TestCase] = []
         base_dir: str = os.path.dirname(csv_path)
@@ -50,19 +54,32 @@ class TestCaseCollection(storable.Storable):
 
             for line in reader:
                 scan_name: str = line[0]
-                pcr_status: bool = line[1].lower() == "pcr"
+                pcr: bool = line[1].lower() == "pcr"
+                nar: Optional[int] = None
+                if len(line) > 2:
+                    try:
+                        nar = int(line[2])
+                    except Exception as ex:
+                        pass
                 if not scan_name.endswith(file_ending):
                     scan_name += file_ending
                 scan_name = os.path.join(base_dir, scan_name)
-                print(f"{scan_name} - {pcr_status}")
-                test_cases.append(
-                    test_case.TestCase.from_scan_path(scan_name, int(pcr_status))
-                )
+                print(f"{scan_name} - {pcr} - {nar}")
+                try:
+                    tc: test_case.TestCase = test_case.TestCase.from_scan_path(
+                        scan_name, pcr, nar
+                    )
+                except Exception as ex:
+                    if not skip_invalid:
+                        raise ex
+
+                test_cases.append(tc)
+
         return cls(test_cases)
 
 
 if __name__ == "__main__":
     tcc: TestCaseCollection = TestCaseCollection.from_csv(
-        "../Dataset_V2/images_clean.csv"
+        "../Dataset_V2/images_clean_NAR.csv"
     )
     print(tcc)

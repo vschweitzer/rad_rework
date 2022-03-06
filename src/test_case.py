@@ -22,7 +22,8 @@ class TestCaseBase(storable.Storable):
     scan_file: mri_file.ScanFile
     anno_file: mri_file.AnnoFile
 
-    category: int
+    nar: Optional[int]
+    pcr: Optional[bool]
     id: str
 
     # not stored
@@ -30,12 +31,17 @@ class TestCaseBase(storable.Storable):
     scan_object: nibabel.Nifti1Image
 
     def __init__(
-        self, scan_file: mri_file.ScanFile, anno_file: mri_file.AnnoFile, category: int
+        self,
+        scan_file: mri_file.ScanFile,
+        anno_file: mri_file.AnnoFile,
+        pcr: Optional[bool],
+        nar: Optional[int],
     ) -> None:
         super().__init__()
         self.scan_file = scan_file
         self.anno_file = anno_file
-        self.category = category
+        self.pcr = pcr
+        self.nar = nar
         self.id = self.get_id()
 
         if (
@@ -74,7 +80,8 @@ class TestCaseBase(storable.Storable):
         dict_representation: dict = super().get_dict_representation()
         dict_representation["scan_file"] = self.scan_file.get_dict_representation()
         dict_representation["anno_file"] = self.anno_file.get_dict_representation()
-        dict_representation["category"] = self.category
+        dict_representation["pcr"] = self.pcr
+        dict_representation["nar"] = self.nar
         dict_representation["id"] = self.id
         return dict_representation
 
@@ -99,16 +106,15 @@ class TestCaseBase(storable.Storable):
         )
 
         return cls(
-            scan_file,
-            anno_file,
-            dict_representation["category"],
+            scan_file, anno_file, dict_representation["pcr"], dict_representation["nar"]
         )
 
     @classmethod
     def from_scan_path(
         cls,
         scan_path: str,
-        category: int,
+        pcr: Optional[bool],
+        nar: Optional[int],
         anno_suffix: str = "A",
         file_ending: str = ".nii.gz",
     ):
@@ -116,7 +122,7 @@ class TestCaseBase(storable.Storable):
         anno_file: mri_file.AnnoFile = mri_file.AnnoFile.from_scan_path(
             scan_path, anno_suffix=anno_suffix, file_ending=file_ending
         )
-        return cls(scan_file, anno_file, category)
+        return cls(scan_file, anno_file, pcr, nar)
 
 
 class TestCase(TestCaseBase):
@@ -126,9 +132,13 @@ class TestCase(TestCaseBase):
     """
 
     def __init__(
-        self, scan_file: mri_file.ScanFile, anno_file: mri_file.AnnoFile, category: int
+        self,
+        scan_file: mri_file.ScanFile,
+        anno_file: mri_file.AnnoFile,
+        pcr: Optional[bool],
+        nar: Optional[int],
     ) -> None:
-        super().__init__(scan_file, anno_file, category)
+        super().__init__(scan_file, anno_file, pcr, nar)
         self.cached: dict = {}
 
     def get_dict_representation(self):
@@ -140,7 +150,7 @@ class TestCase(TestCaseBase):
 if __name__ == "__main__":
     test_scan_path: str = "../Dataset_V2/MR81.nii.gz"
     test_save_path: str = "./81_save.txt"
-    tc: TestCase = TestCase.from_scan_path(scan_path=test_scan_path, category=0)
+    tc: TestCase = TestCase.from_scan_path(scan_path=test_scan_path, pcr=True, nar=1)
     tc.to_file(test_save_path)
     tc2: TestCase = TestCase.from_file(test_save_path)
 
