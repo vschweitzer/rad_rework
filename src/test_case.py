@@ -7,7 +7,6 @@ import json
 import hashlib
 import nibabel
 import numpy as np
-import os
 
 import storable
 import mri_file
@@ -115,9 +114,15 @@ class TestCaseBase(storable.Storable):
         scan_path: str,
         pcr: Optional[bool],
         nar: Optional[int],
-        anno_suffix: str = "A",
-        file_ending: str = ".nii.gz",
+        anno_suffix: Optional[str] = None,
+        file_ending: Optional[str] = None,
     ):
+        """
+        Creates TestCase. Annotation path is inferred from the given scan path.
+
+        None for either anno_suffix or file_ending will lead to their default
+        value being used.
+        """
         scan_file: mri_file.ScanFile = mri_file.ScanFile(scan_path)
         anno_file: mri_file.AnnoFile = mri_file.AnnoFile.from_scan_path(
             scan_path, anno_suffix=anno_suffix, file_ending=file_ending

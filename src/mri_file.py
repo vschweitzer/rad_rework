@@ -2,7 +2,6 @@
 Handles representation of MRI (scan/annotation) files in the form of NIfTI-1.
 """
 
-
 from typing import Any, Callable, Optional
 import json
 import hashlib
@@ -17,6 +16,8 @@ class MRIFile(storable.Storable):
     """
     NIfTI-1 MRI file.
     """
+
+    default_file_ending: str = ".nii.gz"
 
     path: str
     image: nibabel.Nifti1Image
@@ -74,6 +75,8 @@ class ScanFile(MRIFile):
 
 
 class AnnoFile(MRIFile):
+    default_annotation_suffix: str = "A"
+
     def __init__(self, path) -> None:
         super().__init__(path)
 
@@ -145,9 +148,13 @@ class AnnoFile(MRIFile):
     def from_scan_path(
         cls,
         scan_path: str,
-        anno_suffix: str = "A",
-        file_ending: str = ".nii.gz",
+        anno_suffix: Optional[str] = None,
+        file_ending: Optional[str] = None,
     ):
+        if anno_suffix is None:
+            anno_suffix = AnnoFile.default_annotation_suffix
+        if file_ending is None:
+            file_ending = AnnoFile.default_file_ending
         no_ending: str
         if scan_path.endswith(file_ending):
             no_ending = scan_path[: -len(file_ending)]
