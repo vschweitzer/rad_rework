@@ -84,9 +84,6 @@ class TestCaseBase(storable.Storable):
         dict_representation["id"] = self.id
         return dict_representation
 
-    def __str__(self) -> str:
-        return json.dumps(self.get_dict_representation())
-
     def to_file(self, file_path: str):
         with open(file_path, "w") as output_file:
             json.dump(self.get_dict_representation(), output_file)

@@ -32,9 +32,6 @@ class TestCaseCollection(storable.Storable):
         ]
         return dict_representation
 
-    def __str__(self) -> str:
-        return json.dumps(self.get_dict_representation())
-
     @classmethod
     def from_csv(
         cls, csv_path: str, file_ending: str = ".nii.gz", skip_invalid: bool = True

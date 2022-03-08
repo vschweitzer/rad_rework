@@ -2,6 +2,8 @@
 Base class for storing/caching class instances.
 """
 
+import json
+
 
 class Storable:
     def get_dict_representation(self):
@@ -21,3 +23,6 @@ class Storable:
         """
         Load class instance from file
         """
+
+    def __str__(self) -> str:
+        return json.dumps(self.get_dict_representation())
