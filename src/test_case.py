@@ -12,7 +12,7 @@ import storable
 import mri_file
 
 
-class TestCaseBase(storable.Storable):
+class TestCase(storable.Storable):
     """
     Represents a scan/annotation pair with health information.
     """
@@ -126,35 +126,41 @@ class TestCaseBase(storable.Storable):
         )
         return cls(scan_file, anno_file, pcr, nar)
 
-
-class TestCase(TestCaseBase):
-    """
-    Represents a scan/annotation pair with health information. Offers cached
-    functions.
-    """
-
-    def __init__(
+    def to_2D(
         self,
-        scan_file: mri_file.ScanFile,
-        anno_file: mri_file.AnnoFile,
-        pcr: Optional[bool],
-        nar: Optional[int],
-    ) -> None:
-        super().__init__(scan_file, anno_file, pcr, nar)
-        self.cached: dict = {}
+        new_annotation_path: Optional[str] = None,
+        overwrite: bool = False,
+        use_existing: bool = True,
+    ):
+        new_annotation: mri_file.AnnoFile
+        if new_annotation_path is None:
+            no_ending: str
+            if self.anno_file.path.endswith(self.anno_file.default_file_ending):
+                no_ending = self.anno_file.path[
+                    : -len(self.anno_file.default_file_ending)
+                ]
+            else:
+                no_ending = self.anno_file.path
+            new_annotation_path = (
+                no_ending + "_largest_slice" + self.anno_file.default_file_ending
+            )
 
-    def get_dict_representation(self):
-        dict_representation: dict = super().get_dict_representation()
-        dict_representation["cached"] = self.cached
-        return dict_representation
+        new_annotation = mri_file.AnnoFile.to_largest_slice(
+            new_annotation_path,
+            self.anno_file.image,
+            overwrite=overwrite,
+            use_existing=use_existing,
+        )
+        self.anno_file = new_annotation
+        self.id = self.get_id()
 
 
 if __name__ == "__main__":
-    test_scan_path: str = "../Dataset_V2/MR81.nii.gz"
-    test_save_path: str = "./81_save.txt"
+    test_scan_path: str = "../Dataset_V2/MR86.nii.gz"
+    test_save_path: str = "./86_save.txt"
     tc: TestCase = TestCase.from_scan_path(scan_path=test_scan_path, pcr=True, nar=1)
     tc.to_file(test_save_path)
     tc2: TestCase = TestCase.from_file(test_save_path)
-
+    tc2.to_2D(overwrite=True)
     print(tc)
     print(tc2)

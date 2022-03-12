@@ -82,14 +82,20 @@ class AnnoFile(MRIFile):
 
     @classmethod
     def to_largest_slice(
-        cls, path: str, anno_object: nibabel.Nifti1Image, overwrite: bool = False
+        cls,
+        path: str,
+        anno_object: nibabel.Nifti1Image,
+        overwrite: bool = False,
+        use_existing: bool = True,
     ):
         """
         Creates new annotation from given by keeping only the largest slice.
         The new annotation is saved in path.
         """
-        if not overwrite:
-            if os.path.exists(path):
+        if not overwrite and os.path.exists(path):
+            if use_existing:
+                return AnnoFile(path)
+            else:
                 raise FileExistsError("File in path already exists.")
         largest_slice_anno: nibabel.Nifti1Image = AnnoFile._largest_slice_anno(
             anno_object
@@ -139,7 +145,9 @@ class AnnoFile(MRIFile):
 
         slice_anno_data = np.zeros(anno_object.header.get_data_shape())
         largest_slice_index: list = AnnoFile._get_largest_slice_index(anno_object)
-        slice_anno_data[largest_slice_index] = anno_object[largest_slice_index]
+        slice_anno_data[largest_slice_index] = anno_object.get_fdata()[
+            largest_slice_index
+        ]
         return nibabel.Nifti1Image(
             slice_anno_data, anno_object.affine, anno_object.header
         )

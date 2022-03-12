@@ -20,8 +20,12 @@ class TestCaseCollection(storable.Storable):
     """
 
     test_cases: List[test_case.TestCase]
+    annotation_mode: str
 
     def __init__(self, test_cases: List[test_case.TestCase]) -> None:
+        """
+        test_cases is a list of TestCases.
+        """
         super().__init__()
         self.test_cases = test_cases
 
@@ -32,9 +36,40 @@ class TestCaseCollection(storable.Storable):
         ]
         return dict_representation
 
+    def convert_annotations(
+        self,
+        annotation_mode: str = "2D",
+        overwrite: bool = False,
+        use_existing: bool = True,
+    ):
+        """
+        annotation_mode determines how TestCase annotations are treated.
+            - None: No transformations are applied.
+            - 2D: TestCase annotations are converted to 2D using the largest
+                  slice.
+            - 3D: Not implemented.
+        """
+        if annotation_mode is None:
+            return
+        elif annotation_mode == "2D":
+            transformed_array: List[test_case.TestCase] = []
+            for tc in self.test_cases:
+                transformed_array.append(
+                    test_case.TestCase.to_2D(
+                        tc, None, overwrite=overwrite, use_existing=use_existing
+                    )
+                )
+        else:
+            raise NotImplementedError(
+                f'"{annotation_mode}" transformation is not available.'
+            )
+
     @classmethod
     def from_csv(
-        cls, csv_path: str, file_ending: str = ".nii.gz", skip_invalid: bool = True
+        cls,
+        csv_path: str,
+        file_ending: str = ".nii.gz",
+        skip_invalid: bool = True,
     ):
         """
         Load TestCaseCollection from csv file.
@@ -76,7 +111,12 @@ class TestCaseCollection(storable.Storable):
 
 
 if __name__ == "__main__":
+    import pprint
+
+    pp: pprint.PrettyPrinter = pprint.PrettyPrinter(indent=4)
     tcc: TestCaseCollection = TestCaseCollection.from_csv(
         "../Dataset_V2/images_clean_NAR.csv"
     )
-    print(tcc)
+    pp.pprint(tcc.get_dict_representation())
+    tcc.convert_annotations()
+    pp.pprint(tcc.get_dict_representation())
