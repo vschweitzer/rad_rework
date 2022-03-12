@@ -1,8 +1,9 @@
 import radiomics.featureextractor
 import json
 
-import test_case
 import storable
+import test_case
+import test_case_collection
 
 
 class FeatureExtractor(storable.Storable):
@@ -22,12 +23,24 @@ class FeatureExtractor(storable.Storable):
         self.extractor = radiomics.featureextractor.RadiomicsFeatureExtractor()
         self.extractor.loadJSONParams(json.dumps(self.config))
 
+    def extract_collection(self, tcc: test_case_collection.TestCaseCollection):
+        for tc in tcc.test_cases:
+            self.extract(tc)
+
     def extract(self, tc: test_case.TestCase):
         """
         Extracts radiomics features from TestCase. These features are stored in
         self.features[<config_id>][<TestCase_id>].
         """
-        pass
+        features: dict
+        if tc.id in self.features:
+            features = self.features[tc.id]
+        else:
+            features = self.extractor.execute(tc.scan_file.path, tc.anno_file.path)
+            for feature_key in features:
+                print(features[feature_key], type(features[feature_key]))
+            self.features[tc.id] = features
+        return features
 
     def get_dict_representation(self):
         dict_representation: dict = super().get_dict_representation()
@@ -53,5 +66,12 @@ class FeatureExtractor(storable.Storable):
 
 
 if __name__ == "__main__":
-    fe = FeatureExtractor({})
+    fe = FeatureExtractor({"setting": {"correctMask": True}})
+    tcc: test_case_collection.TestCaseCollection = (
+        test_case_collection.TestCaseCollection.from_csv(
+            "../Dataset_V2/images_clean_NAR.csv"
+        )
+    )
+    tcc.convert_annotations()
+    fe.extract_collection(tcc)
     print(fe)
