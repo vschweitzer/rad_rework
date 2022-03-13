@@ -76,6 +76,7 @@ class TestCase(storable.Storable):
         )
 
     def get_dict_representation(self):
+        # Pickle features to byte-strings?tea
         dict_representation: dict = super().get_dict_representation()
         dict_representation["scan_file"] = self.scan_file.get_dict_representation()
         dict_representation["anno_file"] = self.anno_file.get_dict_representation()

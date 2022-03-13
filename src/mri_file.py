@@ -104,6 +104,14 @@ class AnnoFile(MRIFile):
         return AnnoFile(path)
 
     @staticmethod
+    def get_slice_dimension(anno_object: nibabel.Nifti1Image):
+        largest_slice_index = AnnoFile._get_largest_slice_index(anno_object)
+
+        for slice_index, slice_object in enumerate(largest_slice_index):
+            if slice_object != slice(None, None, None):
+                return slice_index
+
+    @staticmethod
     def _get_largest_slice_index(anno_object: nibabel.Nifti1Image):
         """
         Returns the largest slice of a scans' annotation.
@@ -140,9 +148,6 @@ class AnnoFile(MRIFile):
 
     @staticmethod
     def _largest_slice_anno(anno_object: nibabel.Nifti1Image):
-        # TODO: Split scan and anno into their own classes, use second anno
-        # object to cache this
-
         slice_anno_data = np.zeros(anno_object.header.get_data_shape())
         largest_slice_index: list = AnnoFile._get_largest_slice_index(anno_object)
         slice_anno_data[largest_slice_index] = anno_object.get_fdata()[
