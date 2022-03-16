@@ -132,6 +132,7 @@ class TestCase(storable.Storable):
         new_annotation_path: Optional[str] = None,
         overwrite: bool = False,
         use_existing: bool = True,
+        along_axes: Optional[list] = None,
     ):
         new_annotation: mri_file.AnnoFile
         if new_annotation_path is None:
@@ -142,15 +143,21 @@ class TestCase(storable.Storable):
                 ]
             else:
                 no_ending = self.anno_file.path
-            new_annotation_path = (
-                no_ending + "_largest_slice" + self.anno_file.default_file_ending
-            )
+            new_annotation_path = no_ending + "_largest_slice_"
+            if along_axes is None:
+                new_annotation_path += "axis_any" + self.anno_file.default_file_ending
+            else:
+                new_annotation_path += (
+                    "_".join([str(element) for element in along_axes])
+                    + self.anno_file.default_file_ending
+                )
 
         new_annotation = mri_file.AnnoFile.to_largest_slice(
             new_annotation_path,
             self.anno_file.image,
             overwrite=overwrite,
             use_existing=use_existing,
+            along_axes=along_axes,
         )
         self.anno_file = new_annotation
         self.id = self.get_id()
@@ -162,6 +169,6 @@ if __name__ == "__main__":
     tc: TestCase = TestCase.from_scan_path(scan_path=test_scan_path, pcr=True, nar=1)
     tc.to_file(test_save_path)
     tc2: TestCase = TestCase.from_file(test_save_path)
-    tc2.to_2D(overwrite=True)
+    tc2.to_2D(overwrite=True, use_existing=False, along_axes=[0])
     print(tc)
     print(tc2)

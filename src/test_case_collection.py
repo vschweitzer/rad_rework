@@ -39,8 +39,7 @@ class TestCaseCollection(storable.Storable):
     def convert_annotations(
         self,
         annotation_mode: str = "2D",
-        overwrite: bool = False,
-        use_existing: bool = True,
+        conversion_options: dict = {},
     ):
         """
         annotation_mode determines how TestCase annotations are treated.
@@ -53,12 +52,27 @@ class TestCaseCollection(storable.Storable):
             return
         elif annotation_mode == "2D":
             transformed_array: List[test_case.TestCase] = []
+
+            overwrite: bool = False
+            use_existing: bool = True
+            along_axes: Optional[list] = None
+
+            if "overwrite" in conversion_options:
+                overwrite = conversion_options["overwrite"]
+            if "use_existing" in conversion_options:
+                use_existing = conversion_options["use_existing"]
+            if "along_axes" in conversion_options:
+                along_axes = conversion_options["along_axes"]
+
             for tc in self.test_cases:
-                transformed_array.append(
-                    test_case.TestCase.to_2D(
-                        tc, None, overwrite=overwrite, use_existing=use_existing
-                    )
+                test_case.TestCase.to_2D(
+                    tc,
+                    None,
+                    overwrite=overwrite,
+                    use_existing=use_existing,
+                    along_axes=along_axes,
                 )
+
         else:
             raise NotImplementedError(
                 f'"{annotation_mode}" transformation is not available.'
@@ -113,10 +127,10 @@ class TestCaseCollection(storable.Storable):
 if __name__ == "__main__":
     import pprint
 
-    pp: pprint.PrettyPrinter = pprint.PrettyPrinter(indent=4)
+    pp: pprint.PrettyPrinter = pprint.PrettyPrinter(indent=2)
     tcc: TestCaseCollection = TestCaseCollection.from_csv(
         "../Dataset_V2/images_clean_NAR.csv"
     )
     pp.pprint(tcc.get_dict_representation())
-    tcc.convert_annotations()
+    tcc.convert_annotations(conversion_options={"along_axes": [2]})
     pp.pprint(tcc.get_dict_representation())

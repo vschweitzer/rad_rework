@@ -61,10 +61,14 @@ class FeatureExtractor(storable.Storable):
         converted_features: dict
 
         dimension_2D: int = AnnoFile.get_slice_dimension(tc.anno_file.image)
-        if "force2D" in self.config["setting"] and self.config["setting"]["force2D"]:
-            self.change_setting("force2Ddimension", dimension_2D)
-        else:
-            self.remove_setting("force2Ddimension")
+        if self.force2D_adaptive_axis:
+            if (
+                "force2D" in self.config["setting"]
+                and self.config["setting"]["force2D"]
+            ):
+                self.change_setting("force2Ddimension", dimension_2D)
+            else:
+                self.remove_setting("force2Ddimension")
 
         config_id: str = self.get_configuration_id()
 
@@ -145,7 +149,10 @@ if __name__ == "__main__":
     if os.path.exists(save_path):
         fe = FeatureExtractor.from_file(save_path)
     else:
-        fe = FeatureExtractor({"setting": {"correctMask": True}})
+        fe = FeatureExtractor(
+            {"setting": {"correctMask": True, "force2D": True, "force2Ddimension": 0}},
+            force2D_adaptive_axis=False,
+        )
 
     pp = pprint.PrettyPrinter(indent=4)
     tcc: test_case_collection.TestCaseCollection = (
@@ -153,7 +160,7 @@ if __name__ == "__main__":
             "../Dataset_V2/images_clean_NAR.csv"
         )
     )
-    tcc.convert_annotations()
+    tcc.convert_annotations(conversion_options={"along_axes": [2]})
     fe.extract_collection(tcc)
     pp.pprint(fe.get_dict_representation())
     fe.to_file(save_path)

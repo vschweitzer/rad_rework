@@ -87,6 +87,7 @@ class AnnoFile(MRIFile):
         anno_object: nibabel.Nifti1Image,
         overwrite: bool = False,
         use_existing: bool = True,
+        along_axes: Optional[list] = None,
     ):
         """
         Creates new annotation from given by keeping only the largest slice.
@@ -98,7 +99,7 @@ class AnnoFile(MRIFile):
             else:
                 raise FileExistsError("File in path already exists.")
         largest_slice_anno: nibabel.Nifti1Image = AnnoFile._largest_slice_anno(
-            anno_object
+            anno_object, along_axes=along_axes
         )
         nibabel.save(largest_slice_anno, path)
         return AnnoFile(path)
@@ -112,7 +113,9 @@ class AnnoFile(MRIFile):
                 return slice_index
 
     @staticmethod
-    def _get_largest_slice_index(anno_object: nibabel.Nifti1Image):
+    def _get_largest_slice_index(
+        anno_object: nibabel.Nifti1Image, along_axes: Optional[list] = None
+    ):
         """
         Returns the largest slice of a scans' annotation.
         A "slice" has n-1 dimensions, where n is the number of dimensions of
@@ -131,6 +134,9 @@ class AnnoFile(MRIFile):
         maximum_slice_area: float = 0
         maximum_slice_area_index: Optional[list] = None
         for dimension in range(len(anno_object.header.get_data_shape())):
+            if along_axes is not None:
+                if dimension not in along_axes:
+                    continue
             slice_voxel_dimensions: list = (
                 anno_voxel_dimensions[:dimension]
                 + anno_voxel_dimensions[dimension + 1 :]
@@ -147,9 +153,13 @@ class AnnoFile(MRIFile):
         return maximum_slice_area_index
 
     @staticmethod
-    def _largest_slice_anno(anno_object: nibabel.Nifti1Image):
+    def _largest_slice_anno(
+        anno_object: nibabel.Nifti1Image, along_axes: Optional[list] = None
+    ):
         slice_anno_data = np.zeros(anno_object.header.get_data_shape())
-        largest_slice_index: list = AnnoFile._get_largest_slice_index(anno_object)
+        largest_slice_index: list = AnnoFile._get_largest_slice_index(
+            anno_object, along_axes=along_axes
+        )
         slice_anno_data[largest_slice_index] = anno_object.get_fdata()[
             largest_slice_index
         ]
