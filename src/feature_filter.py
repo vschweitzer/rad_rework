@@ -1,7 +1,5 @@
-from operator import invert
 from typing import Any, Callable, Dict, List, Tuple
 
-import test_case
 import storable
 
 
