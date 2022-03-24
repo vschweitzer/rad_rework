@@ -68,6 +68,7 @@ class TestCaseCollection(storable.Storable):
             if "along_axes" in conversion_options:
                 along_axes = conversion_options["along_axes"]
 
+            new_test_cases: Dict[str, test_case.TestCase] = {}
             for tc in self.test_cases:
                 test_case.TestCase.to_2D(
                     self.test_cases[tc],
@@ -76,6 +77,8 @@ class TestCaseCollection(storable.Storable):
                     use_existing=use_existing,
                     along_axes=along_axes,
                 )
+                new_test_cases[self.test_cases[tc].get_id()] = self.test_cases[tc]
+            self.test_cases = new_test_cases
 
         else:
             raise NotImplementedError(
@@ -189,3 +192,6 @@ if __name__ == "__main__":
     pp.pprint(tcc.get_dict_representation())
     print(tcc.get_equal_sample(1, fractional=False, metric="pcr"))
     print(tcc.get_equal_sample(1, fractional=False, metric="nar"))
+
+    for test_case_key in tcc.test_cases:
+        assert test_case_key == tcc.test_cases[test_case_key].get_id()

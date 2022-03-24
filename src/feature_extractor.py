@@ -1,7 +1,7 @@
 import radiomics.featureextractor
 import json
 import numpy as np
-from typing import Any, Callable
+from typing import Any, Callable, List
 import os
 
 from mri_file import AnnoFile
@@ -49,7 +49,7 @@ class FeatureExtractor(storable.Storable):
 
     def extract_collection(self, tcc: test_case_collection.TestCaseCollection):
         for tc in tcc.test_cases:
-            new_features = self.extract(tc)
+            new_features = self.extract(tcc.test_cases[tc])
             json.dumps(new_features)
 
     def extract(self, tc: test_case.TestCase):
@@ -59,7 +59,7 @@ class FeatureExtractor(storable.Storable):
         """
         features: dict
         converted_features: dict
-
+        print(tc.get_id())
         dimension_2D: int = AnnoFile.get_slice_dimension(tc.anno_file.image)
         if self.force2D_adaptive_axis:
             if (
@@ -141,18 +141,21 @@ class FeatureExtractor(storable.Storable):
         self.extractor.loadJSONParams(json.dumps(temporary_settings))
         self.config = temporary_settings
 
+    def get_features(self, config_id: str, test_case_ids: List[str]):
+        features: List[List[Any]] = []
+        for test_case_id in test_case_ids:
+            features.append(self.features[config_id][test_case_id])
+        return features
+
 
 if __name__ == "__main__":
     import pprint
 
     save_path: str = "extractor.json"
-    if os.path.exists(save_path):
-        fe = FeatureExtractor.from_file(save_path)
-    else:
-        fe = FeatureExtractor(
-            {"setting": {"correctMask": True, "force2D": True, "force2Ddimension": 0}},
-            force2D_adaptive_axis=False,
-        )
+    fe = FeatureExtractor(
+        {"setting": {"correctMask": True, "force2D": True, "force2Ddimension": 0}},
+        force2D_adaptive_axis=False,
+    )
 
     pp = pprint.PrettyPrinter(indent=4)
     tcc: test_case_collection.TestCaseCollection = (
@@ -162,5 +165,12 @@ if __name__ == "__main__":
     )
     tcc.convert_annotations(conversion_options={"along_axes": [2]})
     fe.extract_collection(tcc)
+    fe.to_file(save_path)
     pp.pprint(fe.get_dict_representation())
+    sample_keys = [
+        item
+        for sublist in tcc.get_equal_sample(3, fractional=False, metric="nar")
+        for item in sublist
+    ]
+    pp.pprint(fe.get_features(fe.get_configuration_id(), sample_keys))
     fe.to_file(save_path)
