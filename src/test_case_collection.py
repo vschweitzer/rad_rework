@@ -4,7 +4,7 @@ Defines TestCaseCollection, which offers loading and selection methods.
 import random
 import os
 import csv
-from typing import List, Optional, Dict, Union
+from typing import List, Optional, Dict, Union, Any
 
 import storable
 import test_case
@@ -18,26 +18,19 @@ class TestCaseCollection(storable.Storable):
 
     test_cases: Dict[str, test_case.TestCase]
     annotation_mode: str
-    random_seed: int
-    _random_provider: random.Random
 
-    def __init__(
-        self, test_cases: List[test_case.TestCase], random_seed: int = 0
-    ) -> None:
+    def __init__(self, test_cases: List[test_case.TestCase]) -> None:
         """
         test_cases is a list of TestCases.
         """
         super().__init__()
         self.test_cases = dict((tc.get_id(), tc) for tc in test_cases)
-        self.random_seed = random_seed
-        self._random_provider = random.Random(self.random_seed)
 
     def get_dict_representation(self):
         dict_representation: dict = super().get_dict_representation()
         dict_representation["test_cases"] = [
             tc.get_dict_representation() for tc in self.test_cases.values()
         ]
-        dict_representation["random_seed"] = self.random_seed
         return dict_representation
 
     def convert_annotations(
@@ -91,7 +84,6 @@ class TestCaseCollection(storable.Storable):
         csv_path: str,
         file_ending: str = ".nii.gz",
         skip_invalid: bool = True,
-        random_seed: int = 0,
     ):
         """
         Load TestCaseCollection from csv file.
@@ -129,10 +121,14 @@ class TestCaseCollection(storable.Storable):
 
                 test_cases.append(tc)
 
-        return cls(test_cases, random_seed)
+        return cls(test_cases)
 
     def get_equal_sample(
-        self, count: Union[int, float], fractional: bool = True, metric: str = "pcr"
+        self,
+        count: Union[int, float],
+        fractional: bool = True,
+        metric: str = "pcr",
+        random_seed: int = 0,
     ) -> list:
         """
         Return a sample of IDs of TestCases taken equally from each category.
@@ -150,6 +146,7 @@ class TestCaseCollection(storable.Storable):
         if fractional and (count < 0.0 or count > 1.0):
             raise ValueError(f"{count} out of range for fractional value.")
 
+        random_provider = random.Random(random_seed)
         chosen: list = []
         categories: dict = {}
         for key in self.test_cases:
@@ -175,9 +172,44 @@ class TestCaseCollection(storable.Storable):
             raise ValueError("Trying to select more values than available.")
 
         for c in categories:
-            chosen.append(self._random_provider.sample(categories[c], to_choose))
+            chosen = chosen + random_provider.sample(categories[c], to_choose)
 
         return chosen
+
+    def get_sample_composition(self, test_case_ids: List[str], metric: str):
+        if metric not in ["nar", "pcr"]:
+            raise ValueError("Unknown metric")
+        composition: Dict[Any, int] = {}
+        for test_case_id in test_case_ids:
+            tc: test_case.TestCase = self.test_cases[test_case_id]
+            value: Any = getattr(tc, metric)
+            if value not in composition:
+                composition[value] = 0
+            composition[value] += 1
+        return composition
+
+    def get_all_but(self, test_case_ids: List[str]):
+        all_but: List[str] = list(self.test_cases.keys())
+        for test_case_id in test_case_ids:
+            all_but.remove(test_case_id)
+        return all_but
+
+    def remove_none_values(self, test_case_ids: List[str], metric: str) -> List[str]:
+        if metric not in ["nar", "pcr"]:
+            raise ValueError(f'Metric "{metric}" is not recognized.')
+        filtered_ids: List[str] = []
+        for test_case_id in test_case_ids:
+            if getattr(self.test_cases[test_case_id], metric) is not None:
+                filtered_ids.append(test_case_id)
+        return filtered_ids
+
+    def get_target_values(self, test_case_ids: List[str], metric: str):
+        if metric not in ["nar", "pcr"]:
+            raise ValueError(f'Metric "{metric}" is not recognized.')
+        target_values: List[int] = []
+        for test_case_id in test_case_ids:
+            target_values.append(getattr(self.test_cases[test_case_id], metric))
+        return target_values
 
 
 if __name__ == "__main__":
@@ -190,8 +222,14 @@ if __name__ == "__main__":
     pp.pprint(tcc.get_dict_representation())
     tcc.convert_annotations(conversion_options={"along_axes": [2]})
     pp.pprint(tcc.get_dict_representation())
-    print(tcc.get_equal_sample(1, fractional=False, metric="pcr"))
-    print(tcc.get_equal_sample(1, fractional=False, metric="nar"))
+    pcr_sample = tcc.get_equal_sample(5, fractional=False, metric="pcr")
+    nar_sample = tcc.get_equal_sample(5, fractional=False, metric="nar")
+
+    pp.pprint(pcr_sample)
+    pp.pprint(tcc.get_target_values(pcr_sample, "pcr"))
+
+    pp.pprint(nar_sample)
+    pp.pprint(tcc.get_target_values(nar_sample, "nar"))
 
     for test_case_key in tcc.test_cases:
         assert test_case_key == tcc.test_cases[test_case_key].get_id()
