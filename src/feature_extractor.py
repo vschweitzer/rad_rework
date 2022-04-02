@@ -1,7 +1,7 @@
 import radiomics.featureextractor
 import json
 import numpy as np
-from typing import Any, Callable, List
+from typing import Any, Callable, Dict, List
 import os
 
 from mri_file import AnnoFile
@@ -87,6 +87,7 @@ class FeatureExtractor(storable.Storable):
         dict_representation: dict = super().get_dict_representation()
         dict_representation["config"] = self.config
         dict_representation["features"] = self.features
+        dict_representation["force2D_adaptive_axis"] = self.force2D_adaptive_axis
         return dict_representation
 
     def to_file(self, file_path: str):
@@ -101,7 +102,10 @@ class FeatureExtractor(storable.Storable):
 
     @classmethod
     def from_dict(cls, dict_representation: dict):
-        fe: FeatureExtractor = cls(dict_representation["config"])
+        fe: FeatureExtractor = cls(
+            dict_representation["config"],
+            force2D_adaptive_axis=dict_representation["force2D_adaptive_axis"],
+        )
         fe.features = dict_representation["features"]
         return fe
 
@@ -147,6 +151,12 @@ class FeatureExtractor(storable.Storable):
             features.append(self.features[config_id][test_case_id])
         return features
 
+    def to_sklearn_data(self, features: List[Dict[str, Any]]):
+        features_without_keys: List[List[Any]] = []
+        for feature_dict in features:
+            features_without_keys.append(list(feature_dict.values()))
+        return features_without_keys
+
 
 if __name__ == "__main__":
     import pprint
@@ -167,10 +177,8 @@ if __name__ == "__main__":
     fe.extract_collection(tcc)
     fe.to_file(save_path)
     pp.pprint(fe.get_dict_representation())
-    sample_keys = [
-        item
-        for sublist in tcc.get_equal_sample(3, fractional=False, metric="nar")
-        for item in sublist
-    ]
-    pp.pprint(fe.get_features(fe.get_configuration_id(), sample_keys))
+    sample_keys = tcc.get_equal_sample(3, fractional=False, metric="nar")
+
+    features = fe.get_features(fe.get_configuration_id(), sample_keys)
+    print(fe.to_sklearn_data(features))
     fe.to_file(save_path)
