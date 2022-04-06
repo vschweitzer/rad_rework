@@ -1,4 +1,4 @@
-from typing import List, Any, Dict, Union, Optional
+from typing import List, Any, Dict, Union, Optional, Callable
 import numpy as np
 import sklearn
 import sklearn.metrics as smetrics
@@ -70,7 +70,7 @@ class Classification(storable.Storable):
         set_size_fractional: bool,
         metric: str,
         extractor_config_id: str,
-        classification_rounds: List[ClassificationRound] = [],
+        classification_rounds: Optional[List[ClassificationRound]] = None,
     ) -> None:
         super().__init__()
         self.tcc = tcc
@@ -81,8 +81,10 @@ class Classification(storable.Storable):
         self.set_size_fractional = set_size_fractional
         self.metric = metric
         self.extractor_config_id = extractor_config_id
-
-        self.classification_rounds: List[ClassificationRound] = classification_rounds
+        if classification_rounds is None:
+            self.classification_rounds: List[ClassificationRound] = []
+        else:
+            self.classification_rounds = classification_rounds
 
     @classmethod
     def from_dict(cls, dict_representation: dict):
@@ -167,3 +169,14 @@ class Classification(storable.Storable):
             average_importances /= correction_factor
 
         return dict(zip(feature_names, average_importances))
+
+    @staticmethod
+    def get_cascade_accuracies(classifications: list, adjusted: bool = False, average_function: Callable[[list], float] = np.mean):
+        average_accuracies: List[float] = []
+
+        for c in classifications:
+            accuracies = c.get_balanced_accuracies(adjusted=adjusted)
+            average_accuracy: float = average_function(accuracies)
+            average_accuracies.append(average_accuracy)
+        return average_accuracies
+        

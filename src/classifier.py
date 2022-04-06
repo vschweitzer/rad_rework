@@ -1,4 +1,6 @@
-from typing import List, Any, Dict, Union
+import copy
+from typing import Callable, List, Any, Dict, Union
+import numpy as np
 import sklearn.ensemble as skensemble
 
 import storable
@@ -87,3 +89,50 @@ class Classifier(storable.Storable):
             )
 
         return classification_result
+
+    def importance_cascade(
+        self,
+        tcc: test_case_collection.TestCaseCollection,
+        fe: feature_extractor.FeatureExtractor,
+        ff: feature_filter.FeatureFilter,
+        rounds: int = 100,
+        train_set_size: Union[int, float] = 0.7,
+        set_size_fractional: bool = True,
+        metric: str = "nar",
+        steps: int = 100,
+    ):
+        base_classification = self.classify(
+            tcc,
+            fe,
+            ff,
+            rounds=rounds,
+            train_set_size=train_set_size,
+            set_size_fractional=set_size_fractional,
+            metric=metric,
+        )
+        base_importances: Dict[str, Any] = base_classification.get_importance_average(
+            weighted=True, normalize=True
+        )
+        max_importance: float = max(base_importances.values())
+        classifications: List[classification.Classification] = []
+        for step in range(steps):
+            threshold: float = step / steps * max_importance
+            print(f"Round {step}, Threshold: {threshold}")
+            step_filter: feature_filter.FeatureFilter = feature_filter.FeatureFilter(
+                "importance_threshold",
+                base_importances,
+                threshold,
+                subfilters=[ff],
+            )
+
+            result = self.classify(
+                tcc,
+                fe,
+                step_filter,
+                rounds=rounds,
+                train_set_size=train_set_size,
+                set_size_fractional=set_size_fractional,
+                metric=metric,
+            )
+            classifications.append(result)
+        return classifications

@@ -1,6 +1,7 @@
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import storable
+import copy
 
 
 class FeatureFilter(storable.Storable):
@@ -15,13 +16,16 @@ class FeatureFilter(storable.Storable):
     _filter_prefix: str = "_filter_"
 
     def __init__(
-        self, filter_name: str, *args, subfilters: list = [], **kwargs
+        self, filter_name: str, *args, subfilters: Optional[list] = None, **kwargs
     ) -> None:
         super().__init__()
         if filter_name not in self.get_available_filters():
             raise ValueError("Unrecognized filter")
 
-        self.subfilters = subfilters
+        if subfilters is None:
+            self.subfilters = []
+        else:
+            self.subfilters = subfilters
         self.filter_name = filter_name
         self.args = args
         self.kwargs = kwargs
@@ -100,6 +104,33 @@ class FeatureFilter(storable.Storable):
                 if key.startswith(prefix) != invert:
                     filtered_dict[key] = feature_dict[key]
             filtered_features.append(filtered_dict)
+        return filtered_features
+
+    @staticmethod
+    def _filter_importance_threshold(
+        features: List[Dict[str, Any]],
+        importances: Dict[str, Any],
+        threshold: float,
+        *args,
+        invert: bool = False,
+        **kwargs
+    ):
+        """
+        Returns all features with larger or equal importance
+        """
+        filtered_features: List[Dict[str, Any]] = copy.deepcopy(features)
+        for feature in importances:
+            remove_feature: bool = False
+            if importances[feature] < threshold:
+                remove_feature = True
+
+            if invert:
+                remove_feature = not remove_feature
+
+            if remove_feature:
+                for test_case in filtered_features:
+                    test_case.pop(feature)
+
         return filtered_features
 
 
