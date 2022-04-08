@@ -75,19 +75,28 @@ class TestCase(storable.Storable):
             )
         )
 
-    def get_dict_representation(self):
-        # Pickle features to byte-strings?tea
-        dict_representation: dict = super().get_dict_representation()
-        dict_representation["scan_file"] = self.scan_file.get_dict_representation()
-        dict_representation["anno_file"] = self.anno_file.get_dict_representation()
+    def get_dict_representation(self, by_id: bool = True):
+        dict_representation: dict = super().get_dict_representation(by_id=by_id)
+        if by_id:
+            dict_representation["scan_file"] = self.scan_file.get_id()
+            dict_representation["anno_file"] = self.anno_file.get_id()
+        else:
+            dict_representation["scan_file"] = self.scan_file.get_dict_representation()
+            dict_representation["anno_file"] = self.anno_file.get_dict_representation()
+
         dict_representation["pcr"] = self.pcr
         dict_representation["nar"] = self.nar
         dict_representation["id"] = self.id
         return dict_representation
 
+    def _save_dependencies(self, save_dir: str = "./"):
+        super()._save_dependencies(save_dir)
+        self.scan_file.save(save_dir=save_dir, create=False)
+        self.anno_file.save(save_dir=save_dir, create=False)
+
     def to_file(self, file_path: str):
         with open(file_path, "w") as output_file:
-            json.dump(self.get_dict_representation(), output_file)
+            json.dump(self.get_dict_representation(by_id=False), output_file)
 
     @classmethod
     def from_file(cls, file_path: str):

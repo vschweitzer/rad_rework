@@ -26,12 +26,23 @@ class TestCaseCollection(storable.Storable):
         super().__init__()
         self.test_cases = dict((tc.get_id(), tc) for tc in test_cases)
 
-    def get_dict_representation(self):
-        dict_representation: dict = super().get_dict_representation()
-        dict_representation["test_cases"] = [
-            tc.get_dict_representation() for tc in self.test_cases.values()
-        ]
+    def get_dict_representation(self, by_id: bool = True):
+        dict_representation: dict = super().get_dict_representation(by_id=by_id)
+        if by_id:
+            dict_representation["test_cases"] = [
+                tc.get_id() for tc in self.test_cases.values()
+            ]
+        else:
+            dict_representation["test_cases"] = [
+                tc.get_dict_representation(by_id=False)
+                for tc in self.test_cases.values()
+            ]
         return dict_representation
+
+    def _save_dependencies(self, save_dir: str = "./"):
+        super()._save_dependencies(save_dir)
+        for tc in self.test_cases:
+            self.test_cases[tc].save(save_dir=save_dir, create=False)
 
     def convert_annotations(
         self,

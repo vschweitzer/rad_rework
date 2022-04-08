@@ -39,16 +39,27 @@ class FeatureFilter(storable.Storable):
             **dict_representation["kwargs"]
         )
 
-    def get_dict_representation(self):
-        dict_representation = super().get_dict_representation()
+    def get_dict_representation(self, by_id: bool = True):
+        dict_representation: dict = super().get_dict_representation(by_id=by_id)
         dict_representation["is_filter"] = True
         dict_representation["filter_name"] = self.filter_name
-        dict_representation["subfilters"] = [
-            subfilter.get_dict_representation() for subfilter in self.subfilters
-        ]
+
+        if by_id:
+            dict_representation["subfilters"] = [
+                subfilter.get_id() for subfilter in self.subfilters
+            ]
+        else:
+            dict_representation["subfilters"] = [
+                subfilter.get_dict_representation() for subfilter in self.subfilters
+            ]
         dict_representation["args"] = self.args
         dict_representation["kwargs"] = self.kwargs
         return dict_representation
+
+    def _save_dependencies(self, save_dir: str = "./"):
+        super()._save_dependencies()
+        for subfilter in self.subfilters:
+            subfilter.save(save_dir=save_dir, create=False)
 
     def execute_subfilters(
         self, features: List[Dict[str, Any]]

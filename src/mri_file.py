@@ -26,15 +26,15 @@ class MRIFile(storable.Storable):
         self.path = path
         self.image = nibabel.load(self.path)
 
-    def get_dict_representation(self):
-        dict_representation: dict = super().get_dict_representation()
+    def get_dict_representation(self, by_id: bool = True):
+        dict_representation: dict = super().get_dict_representation(by_id=by_id)
         dict_representation["path"] = self.path
         dict_representation["id"] = self.get_id()
         return dict_representation
 
     def to_file(self, file_path: str):
         with open(file_path, "w") as output_file:
-            json.dump(self.get_dict_representation(), output_file)
+            json.dump(self.get_dict_representation(by_id=False), output_file)
 
     @classmethod
     def from_file(cls, file_path: str):

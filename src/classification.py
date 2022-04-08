@@ -104,18 +104,30 @@ class Classification(storable.Storable):
             ],
         )
 
-    def get_dict_representation(self):
-        dict_representation = super().get_dict_representation()
-        dict_representation["tcc"] = self.tcc.get_dict_representation()
-        dict_representation["fe"] = self.fe.get_dict_representation()
-        dict_representation["ff"] = self.ff.get_dict_representation()
-        dict_representation["train_set_size"] = self.train_set_size
-        dict_representation["metric"] = self.metric
-        dict_representation["extractor_config_id"] = self.extractor_config_id
+    def get_dict_representation(self, by_id: bool = True):
+        dict_representation: dict = super().get_dict_representation(by_id=by_id)
+        if by_id:
+            dict_representation["tcc"] = self.tcc.get_id()
+            dict_representation["fe"] = self.fe.get_id()
+            dict_representation["ff"] = self.ff.get_id()
+        else:
+            dict_representation["tcc"] = self.tcc.get_dict_representation()
+            dict_representation["fe"] = self.fe.get_dict_representation()
+            dict_representation["ff"] = self.ff.get_dict_representation()
         dict_representation["classification_rounds"] = [
             r.get_dict_representation() for r in self.classification_rounds
         ]
+        dict_representation["train_set_size"] = self.train_set_size
+        dict_representation["metric"] = self.metric
+        dict_representation["extractor_config_id"] = self.extractor_config_id
+        
         return dict_representation
+
+    def _save_dependencies(self, save_dir: str = "./"):
+        super()._save_dependencies(save_dir)
+        self.tcc.save(save_dir=save_dir, create=False)
+        self.fe.save(save_dir=save_dir, create=False)
+        self.ff.save(save_dir=save_dir, create=False)
 
     def get_confusion_matrix(self):
         total_targets: List[Any] = []

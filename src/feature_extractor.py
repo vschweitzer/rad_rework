@@ -83,8 +83,8 @@ class FeatureExtractor(storable.Storable):
             self.features[config_id][tc.id] = converted_features
         return converted_features
 
-    def get_dict_representation(self):
-        dict_representation: dict = super().get_dict_representation()
+    def get_dict_representation(self, by_id: bool = True):
+        dict_representation: dict = super().get_dict_representation(by_id=by_id)
         dict_representation["config"] = self.config
         dict_representation["features"] = self.features
         dict_representation["force2D_adaptive_axis"] = self.force2D_adaptive_axis
@@ -92,7 +92,7 @@ class FeatureExtractor(storable.Storable):
 
     def to_file(self, file_path: str):
         with open(file_path, "w") as output_file:
-            json.dump(self.get_dict_representation(), output_file)
+            json.dump(self.get_dict_representation(by_id=False), output_file)
 
     @classmethod
     def from_file(cls, file_path: str):
