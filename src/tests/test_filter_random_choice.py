@@ -43,6 +43,7 @@ class FeatureFilterTest(unittest.TestCase):
                     random_seed=starting_seed,
                     increase_seed=increase,
                     invert=invert,
+                    subfilters=[],
                 )
                 filtered_features[increase][invert] = filters[increase][invert].filter(
                     self.dummy_features
@@ -63,8 +64,18 @@ class FeatureFilterTest(unittest.TestCase):
                     filters[increase][invert].kwargs["increase_seed"],
                 )
 
+                corrected_fraction: float = fraction if not invert else 1.0 - fraction
+                total_features: int = len(self.dummy_features[0].keys())
+                expected_feature_count: int = round(total_features * corrected_fraction)
+                self.assertEqual(
+                    len(filtered_features[increase][invert][0].keys()),
+                    expected_feature_count,
+                )
+
             reconstructed_features: List[Dict[str, Any]] = []
-            for feature_sets in zip(*filtered_features[increase]):
+            for feature_sets in zip(
+                filtered_features[increase][True], filtered_features[increase][False]
+            ):
                 reconstructed_features.append({**feature_sets[0], **feature_sets[1]})
 
             # Non-inverted + inverted should equal original

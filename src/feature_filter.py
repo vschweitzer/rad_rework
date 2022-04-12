@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple
+import random
+from typing import Any, Callable, Dict, List, Optional, Tuple, Set
 
 import storable
 import copy
@@ -82,9 +83,15 @@ class FeatureFilter(storable.Storable):
 
     def filter(self, features: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         subfiltered_features: List[Dict[str, Any]] = self.execute_subfilters(features)
-        return getattr(self, self._filter_prefix + self.filter_name)(
+        result = getattr(self, self._filter_prefix + self.filter_name)(
             subfiltered_features, *self.args, **self.kwargs
         )
+
+        if "random_seed" in self.kwargs and "increase_seed" in self.kwargs:
+            if self.kwargs["increase_seed"]:
+                self.kwargs["random_seed"] += 1
+
+        return result
 
     def get_available_filters(self):
         available_filters: list = [
@@ -141,6 +148,34 @@ class FeatureFilter(storable.Storable):
             if remove_feature:
                 for test_case in filtered_features:
                     test_case.pop(feature)
+
+        return filtered_features
+
+    @staticmethod
+    def _filter_random_choice(
+        features: List[Dict[str, Any]],
+        fraction: float,
+        *args,
+        random_seed: int = 0,
+        invert: bool = False,
+        increase_seed: bool = True,
+        **kwargs
+    ):
+        if not features:
+            return features
+
+        filtered_features: List[Dict[str, Any]] = []
+        to_choose: int = round(len(features[0].keys()) * fraction)
+        random_provider: random.Random = random.Random(random_seed)
+        all_keys: Set[str] = set(features[0].keys())
+        key_selection: Set[str] = set(random_provider.sample(all_keys, to_choose))
+        if invert:
+            all_keys.difference_update(key_selection)
+            key_selection = all_keys
+
+        for feature_set in features:
+            filtered_feature_set = {key: feature_set[key] for key in key_selection}
+            filtered_features.append(filtered_feature_set)
 
         return filtered_features
 
