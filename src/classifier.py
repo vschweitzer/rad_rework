@@ -39,7 +39,7 @@ class Classifier(storable.Storable):
         train_set_size: Union[int, float] = 0.7,
         set_size_fractional: bool = True,
         metric: str = "nar",
-    ):
+    ) -> classification.Classification:
         extractor_config_id: str = fe.get_configuration_id()
         classification_result: classification.Classification = (
             classification.Classification(
@@ -90,6 +90,39 @@ class Classifier(storable.Storable):
 
         return classification_result
 
+    def random_cascade(
+        self,
+        tcc: test_case_collection.TestCaseCollection,
+        fe: feature_extractor.FeatureExtractor,
+        ff: feature_filter.FeatureFilter,
+        rounds: int = 100,
+        train_set_size: Union[int, float] = 0.7,
+        set_size_fractional: bool = True,
+        metric: str = "nar",
+        steps: int = 100,
+    ):
+        classifications: List[classification.Classification] = []
+        for step in range(steps):
+            fraction: float = (step + 1) / steps
+            print(f"Round {step}, Fraction: {fraction}")
+            step_filter: feature_filter.FeatureFilter = feature_filter.FeatureFilter(
+                "random_choice",
+                fraction,
+                subfilters=[ff],
+            )
+
+            result = self.classify(
+                tcc,
+                fe,
+                step_filter,
+                rounds=rounds,
+                train_set_size=train_set_size,
+                set_size_fractional=set_size_fractional,
+                metric=metric,
+            )
+            classifications.append(result)
+        return classifications
+
     def importance_cascade(
         self,
         tcc: test_case_collection.TestCaseCollection,
@@ -136,3 +169,36 @@ class Classifier(storable.Storable):
             )
             classifications.append(result)
         return classifications
+
+    def new_importance_cascade(
+        self,
+        tcc: test_case_collection.TestCaseCollection,
+        fe: feature_extractor.FeatureExtractor,
+        ff: feature_filter.FeatureFilter,
+        steps: int = 100,
+        rounds: int = 100,
+        train_set_size: Union[float, int] = 0.7,
+        set_size_fractional: bool = True,
+        metric: str = "nar",
+        normalize: bool = True,
+    ):
+        classifications: List[classification.Classification] = []
+        base_classification: classification.Classification = self.classify(
+            tcc,
+            fe,
+            ff,
+            rounds=rounds,
+            train_set_size=train_set_size,
+            set_size_fractional=set_size_fractional,
+            metric=metric,
+        )
+        base_importances: Dict[str, float] = base_classification.get_importance_average(
+            normalize=normalize
+        )
+
+        for round in range(rounds):
+            importance_filter: feature_filter.FeatureFilter = (
+                feature_filter.FeatureFilter(
+                    "importance_threshold",
+                )
+            )
