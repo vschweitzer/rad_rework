@@ -59,6 +59,13 @@ class Storable:
         """
         pass
 
+    def _load_dependencies(self, save_dir: str = "./"):
+        """
+        Call load method of other classes, reference them by their saved ID.
+        """
+        pass
+        pass
+
     def get_id(
         self, hash_function: Callable = hashlib.sha3_256, buffer_size: int = 4096
     ):
@@ -80,3 +87,16 @@ class Storable:
         with open(save_path, "w") as output_file:
             save_data = self.get_dict_representation(by_id=True)
             json.dump(save_data, output_file)
+
+    @classmethod
+    def load(cls, id: str, save_dir: str = "./"):
+        input_path: str = os.path.join(save_dir, id + ".json")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(f'Requested save "{input_path}" could not be found')
+
+        with open(input_path, "r") as input_file:
+            dict_representation = json.load(input_file)
+
+        loaded = cls.from_dict(dict_representation)
+        loaded._load_dependencies()
+        return loaded
