@@ -2,6 +2,11 @@ from typing import List, Any, Dict, Union, Optional, Callable
 import numpy as np
 import sklearn
 import sklearn.metrics as smetrics
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+import hashlib
+import json
 
 import storable
 import test_case_collection
@@ -120,7 +125,7 @@ class Classification(storable.Storable):
         dict_representation["train_set_size"] = self.train_set_size
         dict_representation["metric"] = self.metric
         dict_representation["extractor_config_id"] = self.extractor_config_id
-        
+
         return dict_representation
 
     def _save_dependencies(self, save_dir: str = "./"):
@@ -128,6 +133,15 @@ class Classification(storable.Storable):
         self.tcc.save(save_dir=save_dir, create=False)
         self.fe.save(save_dir=save_dir, create=False)
         self.ff.save(save_dir=save_dir, create=False)
+
+    def get_feature_count(self):
+        # Assumes equal feature count for every TestCase
+        unfiltered_features: List[Dict[str, Any]] = self.fe.get_features(
+            self.fe.get_configuration_id(),
+            [list(self.tcc.test_cases.values())[0].get_id()],
+        )
+        filtered_features: List[Dict[str, Any]] = self.ff.filter(unfiltered_features)
+        return len(list(filtered_features[0].keys()))
 
     def get_confusion_matrix(self):
         total_targets: List[Any] = []
@@ -155,7 +169,9 @@ class Classification(storable.Storable):
             accuracies.append(accuracy)
         return accuracies
 
-    def get_importance_average(self, weighted: bool = True, normalize: bool = False):
+    def get_importance_average(
+        self, weighted: bool = True, normalize: bool = False
+    ) -> Dict[str, float]:
         total_importances: List[List[float]] = []
         first_test_case: str = list(self.fe.features[self.extractor_config_id].keys())[
             0
@@ -182,8 +198,57 @@ class Classification(storable.Storable):
 
         return dict(zip(feature_names, average_importances))
 
+    def get_importance_distribution_plot(
+        self, ax: plt.Axes, weighted: bool = True, normalize: bool = True
+    ):
+        importances: Dict[str, float] = self.get_importance_average(
+            weighted=weighted, normalize=normalize
+        )
+        importance_values: List[float] = list(importances.values())
+        sns.histplot(importance_values, bins=100, ax=ax)
+
     @staticmethod
-    def get_cascade_accuracies(classifications: list, adjusted: bool = False, average_function: Callable[[list], float] = np.mean):
+    def get_accuracy_cascade_plot(
+        ax: plt.Axes,
+        classifications: List["Classification"],
+        x_values: Optional[List[Any]] = None,
+        x_title: Optional[str] = None,
+        average_function: Callable[[Any], float] = np.mean,
+        plot_feature_count: bool = True,
+    ):
+        if x_values is None:
+            x_values = list(range(len(classifications)))
+        else:
+            if len(x_values) != len(classifications):
+                raise ValueError("Lengths of classifications and X values do not match")
+        accuracies: List[float] = []
+        feature_counts: List[int] = []
+        for c in classifications:
+            round_accuracies: List[float] = c.get_balanced_accuracies()
+            round_accuracy: float = average_function(round_accuracies)
+            accuracies.append(round_accuracy)
+            feature_count: int = len(c.classification_rounds[0].feature_importances)
+            feature_count_alternate: int = c.get_feature_count()
+            assert feature_count == feature_count_alternate
+            feature_counts.append(feature_count)
+
+        sns.scatterplot(x=feature_counts, y=accuracies, ax=ax, color="#8800ff")
+        ax.set_ylabel(f"Accuracy {average_function.__name__}")
+        ax.set_xlabel(f"Feature Count")
+        # ax.set_xscale("log")
+        steps: int = len(classifications)
+        rounds_each: float = np.average(
+            [len(rounds.classification_rounds) for rounds in classifications]
+        )
+        accuracy_title: str = f"Accuracy over {steps} steps, {rounds_each} rounds each."
+        ax.set_title(accuracy_title)
+
+    @staticmethod
+    def get_cascade_accuracies(
+        classifications: list,
+        adjusted: bool = False,
+        average_function: Callable[[list], float] = np.mean,
+    ):
         average_accuracies: List[float] = []
 
         for c in classifications:
@@ -191,4 +256,25 @@ class Classification(storable.Storable):
             average_accuracy: float = average_function(accuracies)
             average_accuracies.append(average_accuracy)
         return average_accuracies
-        
+
+    @staticmethod
+    def save_collection(
+        classifications: List["Classification"],
+        save_dir: str = "./",
+        hash_function: Callable = hashlib.sha3_256,
+        buffer_size: int = 4096,
+    ):
+        for c in classifications:
+            c.save(save_dir=save_dir)
+
+        id_list: List[str] = [c.get_id() for c in classifications]
+
+        # Hash combination of IDs to get list ID
+        to_hash: str = "".join(id_list)
+
+        digestor: Any = hash_function()
+        digestor.update(to_hash.encode("utf-8"))
+        list_id: str = digestor.hexdigest()
+        save_path: str = os.path.join(save_dir, list_id + ".json")
+        with open(save_path, "w") as save_file:
+            json.dump(id_list, save_file)
