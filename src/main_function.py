@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 from sklearn.metrics import ConfusionMatrixDisplay
 import os
 import seaborn as sns
+import datetime
 
 import test_case
 import test_case_collection
@@ -35,30 +36,48 @@ def load_extract_and_filter(
         random_seed=0, classifier_options={"n_estimators": 1000, "n_jobs": 8}
     )
     metric: str = "pcr"
-    metric_possibilities: int
-    if metric == "nar":
-        metric_possibilities = 3
-    elif metric == "pcr":
-        metric_possibilities = 2
-    else:
-        raise ValueError("Unknown metric")
 
     tcc.convert_annotations(conversion_options={"along_axes": [2]})
     fe.extract_collection(tcc)
     fe.to_file(extractor_save_path)
 
-    steps: int = 100
-    classifications: List[classification.Classification] = cf.importance_cascade(
-        tcc, fe, ff, steps=steps, rounds=10
+    steps: int = 10
+    rounds: int = 5
+    classifications_importance: List[classification.Classification] = cf.random_cascade(
+        tcc, fe, ff, steps=steps, rounds=rounds, metric=metric
     )
-    classifications_serializable = [
-        c.get_dict_representation() for c in classifications
-    ]
-    with open("classifications.json", "w") as classifications_save:
-        json.dump(classifications_serializable, classifications_save)
-    accuracies = classification.Classification.get_cascade_accuracies(classifications)
-    sns.lineplot(x=range(steps), y=accuracies)
+    classifications_random: List[classification.Classification] = cf.random_cascade(
+        tcc, fe, ff, steps=steps, rounds=rounds, metric=metric
+    )
+    # classifications_serializable = [
+    #     c.get_dict_representation() for c in classifications
+    # ]
+    # timestamp: str = datetime.datetime.strftime(
+    #     datetime.datetime.now(), "%Y%m%d_%H%M%S"
+    # )
+    # with open(f"classifications_{timestamp}.json", "w") as classifications_save:
+    #     json.dump(classifications_serializable, classifications_save)
+
+    fig = plt.figure()
+    subfigs = fig.subfigures(nrows=2, ncols=1)
+    fig.suptitle(f"{metric.upper()} classification")
+    subtitles: List[str] = ["Importance Cascade", "Random Cascade"]
+    axs: List = []
+    for index, (subfigure, subtitle) in enumerate(zip(subfigs, subtitles)):
+        subfigure.suptitle(subtitle)
+        axs.append(subfigure.subplots(nrows=1, ncols=2))
+    classification.Classification.get_accuracy_cascade_plot(
+        axs[0][0], classifications_importance
+    )
+    classifications_importance[0].get_importance_distribution_plot(axs[0][1])
+
+    classification.Classification.get_accuracy_cascade_plot(
+        axs[1][0], classifications_random
+    )
+    classifications_random[0].get_importance_distribution_plot(axs[1][1])
     plt.show()
+
+    pass
 
 
 if __name__ == "__main__":
