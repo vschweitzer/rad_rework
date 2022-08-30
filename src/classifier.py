@@ -11,16 +11,16 @@ import classification
 
 
 class Classifier(storable.Storable):
-    classifier: skensemble.RandomForestClassifier
-    random_seed: int
+    #classifier: skensemble.RandomForestClassifier
+    #random_seed: int
 
     def __init__(
         self, random_seed: int = 0, classifier_options: Dict[str, Any] = {}
     ) -> None:
         super().__init__()
-        self.random_seed = random_seed
+        self.random_seed: int = random_seed
         self.classifier_options = classifier_options
-        self.classifier = skensemble.RandomForestClassifier(
+        self.classifier: skensemble.RandomForestClassifier = skensemble.RandomForestClassifier(
             **self.classifier_options, random_state=self.random_seed
         )
 
