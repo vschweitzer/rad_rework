@@ -35,7 +35,7 @@ def load_extract_and_filter(
     cf: classifier.Classifier = classifier.Classifier(
         random_seed=0, classifier_options={"n_estimators": 1000, "n_jobs": 8}
     )
-    metric: str = "pcr"
+    metric: str = "nar"
 
     tcc.convert_annotations(conversion_options={"along_axes": [2]})
     fe.extract_collection(tcc)
@@ -63,7 +63,7 @@ def load_extract_and_filter(
     fig.suptitle(f"{metric.upper()} classification")
     subtitles: List[str] = ["Importance Cascade", "Random Cascade"]
     axs: List = []
-    for index, (subfigure, subtitle) in enumerate(zip(subfigs, subtitles)):
+    for subfigure, subtitle in zip(subfigs, subtitles):
         subfigure.suptitle(subtitle)
         axs.append(subfigure.subplots(nrows=1, ncols=2))
     classification.Classification.get_accuracy_cascade_plot(
