@@ -42,8 +42,8 @@ def load_extract_and_filter(
     fe.to_file(extractor_save_path)
 
     steps: int = 10
-    rounds: int = 5
-    classifications_importance: List[classification.Classification] = cf.random_cascade(
+    rounds: int = 10
+    classifications_importance: List[classification.Classification] = cf.importance_cascade(
         tcc, fe, ff, steps=steps, rounds=rounds, metric=metric
     )
     classifications_random: List[classification.Classification] = cf.random_cascade(
