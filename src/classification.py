@@ -3,6 +3,7 @@ import numpy as np
 import sklearn
 import sklearn.metrics as smetrics
 import matplotlib.pyplot as plt
+import matplotlib
 import seaborn as sns
 import os
 import hashlib
@@ -215,6 +216,8 @@ class Classification(storable.Storable):
         x_title: Optional[str] = None,
         average_function: Callable[[Any], float] = np.mean,
         plot_feature_count: bool = True,
+        logx: bool = True,
+        cmap_name: str = "viridis"
     ):
         if x_values is None:
             x_values = list(range(len(classifications)))
@@ -223,19 +226,27 @@ class Classification(storable.Storable):
                 raise ValueError("Lengths of classifications and X values do not match")
         accuracies: List[float] = []
         feature_counts: List[int] = []
+        separate_accuracies: List[List[float]] = []
         for c in classifications:
             round_accuracies: List[float] = c.get_balanced_accuracies()
+            separate_accuracies.append(round_accuracies)
             round_accuracy: float = average_function(round_accuracies)
             accuracies.append(round_accuracy)
             feature_count: int = len(c.classification_rounds[0].feature_importances)
             feature_count_alternate: int = c.get_feature_count()
             assert feature_count == feature_count_alternate
             feature_counts.append(feature_count)
-
+        separate_accuracy_values = list(zip(*separate_accuracies))
+        colormap = matplotlib.cm.get_cmap(cmap_name)
+        for index, accuracy_values in enumerate(separate_accuracy_values):
+            sns.lineplot(ax=ax, x=feature_counts, y=accuracy_values, color=colormap(index/len(separate_accuracy_values)))
+        
         sns.scatterplot(x=feature_counts, y=accuracies, ax=ax, color="#8800ff")
+
         ax.set_ylabel(f"Accuracy {average_function.__name__}")
         ax.set_xlabel(f"Feature Count")
-        # ax.set_xscale("log")
+        if logx:
+            ax.set_xscale("log")
         steps: int = len(classifications)
         rounds_each: float = np.average(
             [len(rounds.classification_rounds) for rounds in classifications]
