@@ -26,10 +26,10 @@ class FeatureFilter(storable.Storable):
         if subfilters is None:
             self.subfilters = []
         else:
-            self.subfilters = subfilters
+            self.subfilters = copy.deepcopy(subfilters)
         self.filter_name = filter_name
-        self.args = args
-        self.kwargs = kwargs
+        self.args = copy.deepcopy(args)
+        self.kwargs = copy.deepcopy(kwargs)
 
     @classmethod
     def from_dict(cls, dict_representation: dict):
